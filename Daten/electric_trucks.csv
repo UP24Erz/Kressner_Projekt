@@ -1,0 +1,3 @@
+truck_model;capex_yearly;opex_yearly;avg_energy_kWh_per_100km;thg_yearly;max_power;soc_max_kWh
+eActros600;60000;6000;110;1000;400;621
+eActros400;50000;5000;105;1000;400;414

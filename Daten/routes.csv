@@ -1,0 +1,21 @@
+﻿route_id;route_name;distance_total;distance_toll;starttime;endtime
+t-4;Nahverkehr;250;150;06:45;17:15
+t-5;Nahverkehr;250;150;06:30;17:00
+t-6;Nahverkehr;250;150;06:00;16:30
+s-1;Ditzingen;120;32;05:30;15:30
+s-2;Ditzingen;120;32;06:00;16:00
+s-3;Ditzingen;120;32;09:00;16:00
+s-4;Ditzingen;120;32;06:30;16:30
+w1;Ditzingen;100;32;05:30;15:30
+w2;Ditzingen;100;32;08:00;18:00
+w3;Ditzingen;100;32;06:45;16:45
+w4;Ditzingen;100;32;06:00;16:00
+w5;Ditzingen;100;32;07:00;17:00
+w6;Ditzingen;100;32;05:30;15:30
+w7;Ditzingen;100;32;07:15;17:15
+r1;MultiStop;285;259;18:00;22:30
+r2;MultiStop;250;220;16:30;21:45
+r3;Schramberg;235;219;17:45;21:30
+h3;Hettingen;180;160;18:45;22:45
+h4;Hettingen;180;160;18:30;22:30
+k1;Wendlingen am Neckar;275;235;16:30;22:30
