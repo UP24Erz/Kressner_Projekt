@@ -4,394 +4,296 @@
 
 ### 1.1 Was ist ein lineares Optimierungsproblem?
 
-Ein **lineares Optimierungsproblem** (auch: Linear Programming Problem, LP) ist eine mathematische Problemstellung, bei der wir:
+Ein **lineares Optimierungsproblem** (auch: Linear Programming Problem, LP bzw. MILP bei binären Variablen) beschreibt eine mathematische Entscheidungsaufgabe, bei der
 
-- **eine lineare Zielfunktion** minimieren oder maximieren möchten
-- **unter linearen Nebenbedingungen** (Restriktionen) und
-- mit **Entscheidungsvariablen**, die kontinuierlich oder binär sein können
+* eine **lineare Zielfunktion** minimiert wird,
+* **lineare Nebenbedingungen (Restriktionen)** einzuhalten sind und
+* **Entscheidungsvariablen** kontinuierlich und/oder ganzzahlig (insbesondere binär) sind.
 
-**Praktisches Verständnis:** Stellen Sie sich vor, ein Unternehmen möchte die **Gesamtkosten minimieren** oder **Gewinne maximieren**. Gleichzeitig muss es aber Einschränkungen beachten wie:
-- Verfügbare Kapazitäten von Fabriken
-- Kundennachfrage, die bedient werden muss
-- Budgets und Ressourcen
-
-Die Lösung des Optimierungsproblems sagt uns: **Welche Entscheidungen treffen wir am besten, um das Ziel zu erreichen?**
-
-**Mathematisch ausgedrückt:**
-
-```
-min c₁x₁ + c₂x₂ + ... + cₙxₙ
-Unter den Nebenbedingungen (constraints):
-a₁₁x₁ + a₁₂x₂ + ... ≤ b₁
-a₂₁x₁ + a₂₂x₂ + ... ≤ b₂
-...
-xᵢ ≥ 0 (Nichtnegativitätsbedingung)
-```
+In unserem Projekt wird ein **gemischt-ganzzahliges lineares Optimierungsproblem (MILP)** formuliert, da sowohl kontinuierliche Größen (Leistungen, Energiemengen, SOC) als auch binäre und ganzzahlige Entscheidungen (Fahrzeugbeschaffung, Tourenzuordnung, Infrastruktur) enthalten sind.
 
 ---
 
 ### 1.2 Lösung mit Software – Unser Setting
 
-#### Warum Software nutzen?
+Die Lösung des Modells erfolgt vollständig softwaregestützt.
 
-Optimierungsprobleme mit Hand zu lösen ist:
-- **zeitaufwändig** (hunderte oder tausende Variablen)
-- **fehleranfällig** (manuelle Rechenfehler)
-- **unpraktisch** (Simplex-Algorithmus ist komplex)
+**Solver-Stack:**
 
-Daher verwenden wir **Optimierungssoftware**, die automatisch die beste Lösung findet.
+* **SCIP**: mathematischer MILP-Solver (Branch-and-Bound / Branch-and-Cut)
+* **PySCIPOpt**: Python-Schnittstelle zur Modellformulierung
+* **Python**: Implementierung von Datenimport, Modellaufbau, Lösung und Auswertung
+* **Visual Studio Code**: lokale Entwicklungsumgebung
 
-#### Unser Toolstack
-
-Die Komponenten unseres Systems:
-
-1. **SCIP (Solving Constraint Integer Programs)**
-   - Der eigentliche **Solver** – das „Hirn" der Optimierung
-   - Verwendet fortgeschrittene Algorithmen (Branch-and-Cut, Branch-and-Bound)
-   - Findet die optimale oder nahezu optimale Lösung
-   - Open Source und hochperformant
-
-2. **PySCIPOpt (Python Wrapper für SCIP)**
-   - Eine **Python-Schnittstelle** zu SCIP
-   - Erlaubt uns, Optimierungsprobleme in Python zu formulieren
-   - Übersetzt unsere Python-Befehle in SCIP-Befehle
-   - Macht komplexe Optimierung „einfach"
-
-3. **Python API**
-   - Die **Programmiersprache** für unsere Implementierung
-   - Wir definieren: Variablen, Parameter, Nebenbedingungen, Zielfunktion
-   - Rufen dann den Solver auf, um die Lösung zu finden
-
-4. **VSC (Visual Studio Code)**
-   - Unsere **Entwicklungsumgebung** auf dem lokalen Computer
-   - Hier schreiben, testen und debuggen wir den Code
-   - **Warum nicht Google Colab?**
-     - Colab läuft im **Browser** → Abhängig von Internetverbindung
-     - Colab hat **begrenzte Rechenkraft** für größere Probleme
-     - VSC läuft **lokal** → Volle Kontrolle, keine Abhängigkeiten
-     - VSC ist **professioneller** für ernsthafte Entwicklung
-     - Code bleibt **auf unserem Computer** (Datensicherheit)
+Der vollständige Modellaufbau und die Optimierung sind in der Datei **`tk.py`** implementiert.
 
 ---
 
 ## 2. Unsere Vorgehensweise
 
-Wir folgen einem **systematischen Ansatz**, den wir aus der Vorlesung gelernt haben. Dabei orientieren wir uns an drei Fallstudien:
+Die Modellierung folgt exakt der in der Vorlesung vermittelten Standardstruktur:
 
-1. **Raffinerieproblem** (Rohöle und Kraftstoffe)
-2. **Auswahlproblem Spediteur** (Fahrzeugauswahl)
-3. **Fallstudie Juicy AG** (Produktionsplanung)
+1. Indexmengen
+2. Parameter
+3. Entscheidungsvariablen
+4. Zielfunktion
+5. Restriktionen
 
-In jedem Fall gehen wir **in dieser standardisierten Reihenfolge** vor:
-
-### 2.1 Schritt 1: Indexmengen definieren
-
-**Was sind Indexmengen?**
-
-Indexmengen sind endliche Mengen von Objekten, über die wir „zählen" oder summieren. Sie strukturieren das Problem und ermöglichen kompakte mathematische Formeln.
-
-
-Den folgenden Abschnitt ERSETZEN DURCH: Alle Indexmengen die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
-Bitte achte darauf die Indexmengen in LATEX-Schreibweise in die Readme zu schreiben.
-
-**Beispiele aus unserem Kontext:** >  
-- $I$ = Menge der Produktionsstandorte (Fabriken)
-- $J$ = Menge der Märkte (Absatzorte)
-- $A$ = Menge der Ausbaustufen (Kapazitätserweiterungen)
-
-**Warum brauchen wir sie?**
-- Sie schaffen **Struktur** im Problem
-- Sie ermöglichen **Verallgemeinerung** (statt „Fabrik 1, Fabrik 2, ..." schreiben wir einfach $i \in I$)
-- Sie machen Formeln **übersichtlich** und **mathematisch präzise**
-
-**Notation:**
-Wenn wir schreiben $i \in I$, bedeutet das: „für alle Produktionsstandorte $i$ in der Menge $I$"
+Alle folgenden Abschnitte beziehen sich **direkt auf die Implementierung in `tk.py`**.
 
 ---
 
-### 2.2 Schritt 2: Parameter definieren
+## 2.1 Schritt 1: Indexmengen definieren
 
-**Was sind Parameter?**
+### Definition und Zweck
 
-Parameter sind gegebene Daten (Input), die wir **nicht selbst entscheiden** dürfen. Sie beschreiben die Rahmenbedingungen unseres Problems.
+Indexmengen strukturieren das Modell und legen fest, **über welche Objekte summiert und indiziert wird**. Sie werden im Code zentral in der Funktion
 
+> `build_index_sets(data)`
 
-Den folgenden Abschnitt ERSETZEN DURCH: Alle Parameter die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
-Bitte achte darauf die Parameter LATEX-Schreibweise in die Readme zu schreiben. 
-**Beispiele aus unserem Kontext:**
+angelegt (Abschnitt *INDEXMENGEN AUFBAU* in `tk.py`).
 
-| Parameter | Notation | Bedeutung |
-|-----------|----------|-----------|
-| Nachfrage | $d_j$ | Wie viel muss für Markt $j$ produziert werden? |
-| Variable Stückkosten | $cv_{ij}$ | Was kostet es, eine Einheit in Werk $i$ zu produzieren? |
-| Kapazität | $cap_a^i$ | Wie viel kann Werk $i$ mit Ausbaustufe $a$ produzieren? |
-| Fixkosten | $cf_a^i$ | Wie viel kostet es, Ausbaustufe $a$ in Werk $i$ zu bauen? |
+### Im Modell verwendete Indexmengen
 
-**Praktisch gesprochen:** Diese Daten bekommen wir vom Management, von Lieferanten, aus Kostenbudgets – wir können sie nicht ändern.
+Alle Indexmengen werden im Folgenden in **LaTeX-Notation** angegeben.
 
----
+* `R` – Menge aller Touren  
+  Implementierung: `sets['R']`  
+  Quelle: `routes.csv`  
+  Bedeutung: Jede Tour muss genau einem Fahrzeug zugeordnet werden.
 
-### 2.3 Schritt 3: Entscheidungsvariablen definieren
+* `M_E` – Menge aller E‑Lkw-Modelle  
+  Implementierung: `sets['M_E']`
 
-**Was sind Entscheidungsvariablen?**
+* `M_D` – Menge aller Diesel‑Lkw-Modelle  
+  Implementierung: `sets['M_D']`
 
-Entscheidungsvariablen (auch: Stellschrauben) sind Größen, die das Optimierungsmodell **selbst wählen soll**. Sie sind die „Hebel", über die wir die Zielfunktion optimieren.
+* `V_E` – Menge aller E‑Lkw‑Instanzen  
+  Implementierung: `sets['V_E']`  
+  Erläuterung: Für jedes Modell werden mehrere potenzielle Fahrzeuginstanzen erzeugt, um ausreichend Freiheitsgrade für die Tourenzuordnung zu haben.
 
+* `V_D` – Menge aller Diesel‑Lkw‑Instanzen  
+  Implementierung: `sets['V_D']`
 
-Den folgenden Abschnitt ERSETZEN DURCH: Alle Entscheidungsvariablen die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
-Bitte achte darauf die Entscheidungsvariablen LATEX-Schreibweise in die Readme zu schreiben. 
-**Beispiele aus unserem Kontext:**
+* `V = V_E \cup V_D` – Menge aller Fahrzeuge  
+  Implementierung: `sets['V']`
 
-| Variable | Notation | Typ | Bedeutung |
-|----------|----------|-----|-----------|
-| Produktions-/Transportmenge | $x_{ij} \geq 0$ | Kontinuierlich | Wie viel produzieren wir in Werk $i$ für Markt $j$? |
-| Ausbau-Ja/Nein | $y_a^i \in \{0,1\}$ | Binär | Bauen wir Ausbaustufe $a$ in Werk $i$? (1=Ja, 0=Nein) |
+* `T` – Menge der Zeitschritte eines Tages  
+  Implementierung: `sets['T']`  
+  Bedeutung: Diskretisierung des Tages in 96 Zeitschritte à 15 Minuten.
 
-**Der Unterschied:**
-- $x_{ij}$ kann **jeden Wert annehmen** (0, 10, 100.5, ...)
-- $y_a^i$ kann **nur 0 oder 1 sein** (Entweder-Oder-Entscheidung)
+* `C` – Menge der Ladesäulentypen  
+  Implementierung: `sets['C']`
 
-**Das Optimierungsproblem findet automatisch:** Welche Werte für $x_{ij}$ und $y_a^i$ minimieren unsere Gesamtkosten?
+* `S` – Menge der Ladepunkte (abgeleitet je Ladesäulentyp)  
+  Implementierung: implizit über Ladepunktzuordnung in den Restriktionen
 
----
+**Warum sind diese Indexmengen notwendig?**
 
-### 2.4 Schritt 4: Zielfunktion formulieren
+Sie ermöglichen:
 
-**Was ist eine Zielfunktion?**
-
-Die Zielfunktion ist das **Ziel**, das wir optimieren möchten. Sie fasst zusammen, was wir minimieren oder maximieren wollen.
-
-
-DEN FOLGENDEN ABSCHNITT ERSETZEN DURCH: Erkläre im Folgenden unsere Zielfunktion aus dem Code genauer. Erkläre, dass wir zwischen Operativen und Investitionskonsten unterscheiden und gehe auf Capex und Opex ein. Erkläre genau wo sich welche Kosten in der Zielfunktion wiederfinden und lasse die Beispiele weg. Das gilt für die ganze Readme. Keine Beispiele, nur unseren Code erklären. 
-#### Unsere Zielfunktion im Detail
-
-$$\min \text{GK} = \sum_{i \in I} \sum_{j \in J} cv_{ij} \cdot x_{ij} + \sum_{i \in I} \sum_{a \in A} cf_a^i \cdot y_a^i$$
-
-**Erklärung der Zielfunktion:**
-
-**Teil (1): Operative Kosten**
-
-$$\sum_{i \in I} \sum_{j \in J} cv_{ij} \cdot x_{ij}$$
-
-- **Was wird hier berechnet?** Die Gesamtkosten für **Produktion und Transport**
-- **Wie?** Für **jedes Werk $i$** und **jeden Markt $j$** multiplizieren wir:
-  - $cv_{ij}$ (Kosten pro Einheit) mit
-  - $x_{ij}$ (tatsächlich produzierte/transportierte Menge)
-- **Dann summieren wir alles auf.**
-
-**Beispiel:**
-- Werk 1 → Markt A: 100 Einheiten × 5€/Einheit = 500€
-- Werk 1 → Markt B: 50 Einheiten × 6€/Einheit = 300€
-- Werk 2 → Markt A: 80 Einheiten × 4€/Einheit = 320€
-
-**Teil (2): Investitionskosten**
-
-$$\sum_{i \in I} \sum_{a \in A} cf_a^i \cdot y_a^i$$
-
-- **Was wird hier berechnet?** Die Gesamtkosten für **Kapazitätserweiterungen** (Investitionen)
-- **Wie?** Für **jedes Werk $i$** und **jede Ausbaustufe $a$**:
-  - $cf_a^i$ (Fixkosten für den Ausbau, z.B. 1.000.000€) wird mit
-  - $y_a^i$ (0 oder 1) multipliziert
-  - Wenn $y_a^i = 1$ (Ausbau findet statt) → addieren wir $cf_a^i$
-  - Wenn $y_a^i = 0$ (kein Ausbau) → addieren wir 0
-
-**Gesamtzielfunktion:**
-
-$$\text{Gesamtkosten} = \text{Operative Kosten} + \text{Investitionskosten}$$
-
-Das Solver-Programm findet automatisch die **beste Kombination**.
+* kompakte mathematische Formulierungen,
+* eine skalierbare Modellstruktur,
+* eine 1‑zu‑1‑Abbildung zwischen mathematischem Modell und Code.
 
 ---
 
-### 2.5 Schritt 5: Restriktionen formulieren
+## 2.2 Schritt 2: Parameter definieren
 
-**Was sind Restriktionen?**
+### Definition
 
-Restriktionen sind **Einschränkungen** oder **Regeln**, die das Optimierungsproblem einhalten muss. Sie beschreiben die Realität: Was ist möglich, was nicht?
+Parameter sind **exogen vorgegebene Daten**, die nicht optimiert werden. Sie werden aus CSV-Dateien oder aus der Konfigurationsklasse gelesen.
 
-Den folgenden Abschnitt ERSETZEN DURCH: Alle Restriktionen die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
-Bitte achte darauf die Restriktionen LATEX-Schreibweise in die Readme zu schreiben. Bitte erkläre alle 21 Restriktionen ausführlich 
-#### Restriktion (1): Nachfrage bedienen
+### Zentrale Parametergruppen im Code
 
-$$\sum_{i \in I} x_{ij} = d_j \quad \forall j \in J$$
+Parameter werden in zwei Schritten definiert:
 
-**Was bedeutet das?**
-- **Linke Seite:** $\sum_{i \in I} x_{ij}$ = "Summe über alle Werke: Was wird insgesamt zu Markt $j$ geschickt?"
-- **Rechte Seite:** $d_j$ = "Nachfrage von Markt $j$"
-- **Bedingung:** Sie müssen **gleich sein!**
+* **globale Parameter**: Klasse `OptimizationConfig`
+* **instanzspezifische Parameter**: Funktion `extract_parameters(data, sets)`
 
-**Praktisch:**
-Wenn Markt A 100 Einheiten braucht ($d_A = 100$), dann muss die Summe aller Lieferungen von allen Werken zu Markt A **genau 100 Einheiten** betragen.
+### Wichtige Modellparameter (LaTeX-Notation)
 
-**Warum wichtig?** Diese Restriktion garantiert, dass **alle Kunden beliefert werden** – eine geschäftliche Notwendigkeit.
+* Zeitdiskretisierung:  
+  `\Delta t` – Länge eines Zeitschritts
 
-#### Restriktion (2): Kapazitätsbedingung
+* Tourenparameter:  
+  `d_r` – Gesamtdistanz von Tour `r`  
+  `d_r^{toll}` – mautpflichtige Distanz von Tour `r`  
+  `t_r^{start},\; t_r^{end}` – Start- und Endzeit einer Tour
 
-$$\sum_{j \in J} x_{ij} \leq \sum_{a \in A} cap_a^i \cdot y_a^i \quad \forall i \in I$$
+* E‑Lkw‑Parameter:  
+  `CAPEX_m^E,\; OPEX_m^E` – jährliche Fixkosten  
+  `\varepsilon_m` – Energieverbrauch [kWh/km]  
+  `Q_m` – Batteriekapazität  
+  `P_m^{charge,max}` – maximale Ladeleistung  
+  `THG_m` – THG‑Quotenerlös
 
-**Was bedeutet das?**
-- **Linke Seite:** $\sum_{j \in J} x_{ij}$ = "Gesamtproduktion von Werk $i$ (für alle Märkte)"
-- **Rechte Seite:** $\sum_{a \in A} cap_a^i \cdot y_a^i$ = "Verfügbare Kapazität in Werk $i$"
-- **Bedingung:** Produktion $\leq$ Kapazität (kann nicht mehr produzieren als möglich!)
+* Diesel‑Parameter:  
+  `CAPEX_m^D,\; OPEX_m^D,\; TAX_m^D`  
+  `\kappa_m` – Dieselverbrauch [L/km]
 
-**Praktisch:**
-Werk 1 kann mit den aktuell verbauten Maschinen (Ausbaustufe) maximal 500 Einheiten pro Tag produzieren.
+* Infrastrukturparameter:  
+  `CAPEX_c^{charge},\; OPEX_c^{charge}`  
+  `P_c^{max}` – maximale Ladeleistung  
+  `n_c^{spots}` – Ladepunkte je Säule
 
-**Warum wichtig?** Diese Restriktion garantiert **technische Machbarkeit**.
+* Netz- und Speicherparameter:  
+  `P_{grid}^{base},\; P_{grid}^{upgrade}`  
+  `CAPEX_{stor}^P,\; CAPEX_{stor}^E`  
+  `\eta_{charge},\; \eta_{discharge}`  
+  `DoD_{min}`
 
----
-
-## 3. Kostentreiber, Engpässe und zentrale Einflussfaktoren
-
-### 3.1 Was sind Kostentreiber?
-
-**Definition:** Kostentreiber sind die **Hauptfaktoren**, die die Gesamtkosten des Unternehmens bestimmen.
-
-Den folgenden Abschnitt ERSETZEN DURCH: Alle Kostentreiber die wir im Code definiert haben mit einer Erklärung wie diese die Kosten in der Zielfunktion beinflussen. 
-Bitte erkläre alle Kostentreiber ausführlich 
-
-**Kostentreiber in unserem Modell:**
-
-| Kostentreiber | Parameter | Auswirkung |
-|---------------|-----------|-----------|
-| **Variable Produktionskosten** | $cv_{ij}$ | Je höher $cv_{ij}$, desto teurer die Produktion/der Transport |
-| **Investitionskosten** | $cf_a^i$ | Große Investitionen für Ausbau können erheblich sein |
-| **Nachfrage-Mix** | $d_j$ | Unterschiedliche Märkte kosten unterschiedlich zu bedienen |
+Diese Parameter definieren vollständig den **technischen, wirtschaftlichen und zeitlichen Rahmen** des Modells.
 
 ---
 
-### 3.2 Was sind Engpässe?
+## 2.3 Schritt 3: Entscheidungsvariablen definieren
 
-**Definition:** Engpässe (bottlenecks) sind **Ressourcen oder Kapazitäten**, die die Produktion limitieren.
+### Definition
 
-**Engpässe in unserem Modell:**
+Entscheidungsvariablen sind die Größen, die der Solver wählt, um die Zielfunktion zu minimieren.
 
-| Engpass | Beschreibung | Problem | Lösung |
-|---------|-------------|---------|--------|
-| **Produktionskapazität** | Werk $i$ kann max. $\sum_{a} cap_a^i \cdot y_a^i$ Einheiten produzieren | Wenn Nachfrage > Kapazität | Werk ausbauen |
-| **Transportkapazität** | Transportkorridore können überlastet sein | Transport wird zum Engpass | Alternative Routen suchen |
-| **Raw Materials** | Verfügbarkeit von Rohstoffen begrenzt | Nicht unbegrenzt verfügbar | Mit begrenzten Ressourcen planen |
+### Im Modell verwendete Variablen
 
----
+#### Binäre und ganzzahlige Variablen
 
-### 3.3 Was sind zentrale Einflussfaktoren?
+* `x_v \in \{0,1\}`  
+  Fahrzeugbeschaffung (für `v \in V`)
 
-**Definition:** Zentrale Einflussfaktoren sind **Variablen oder Parameter**, deren Änderung **signifikante Auswirkungen** auf die optimale Lösung hat.
+* `y_{v,r} \in \{0,1\}`  
+  Tourenzuordnung (Fahrzeug `v` fährt Tour `r`)
 
-Den folgenden Abschnitt ERSETZEN DURCH: Alle Einflussfaktoren die wir im Code definiert haben mit einer Erklärung wie diese die Kosten in der Zielfunktion beinflussen. 
-Bitte erkläre alle Einflussfaktoren ausführlich 
+* `z_c \in \mathbb{Z}_+`  
+  Anzahl installierter Ladesäulen vom Typ `c`
 
-**Zentrale Einflussfaktoren:**
+* `w_{v,s,t} \in \{0,1\}`  
+  Ladebelegung eines Fahrzeugs an Ladepunkt `s` zur Zeit `t`
 
-| Einflussfaktor | Art | Auswirkung |
-|----------------|-----|-----------|
-| **Nachfrage $d_j$** | Parameter | Höhere Nachfrage → mehr produzieren → höhere Kosten |
-| **Variable Kosten $cv_{ij}$** | Parameter | Höhere Kosten → weniger rentabel |
-| **Kapazität $cap_a^i$** | Parameter | Größere Kapazität → mehr Spielraum |
-| **Investitionskosten $cf_a^i$** | Parameter | Höhere Investitionskosten → schwerer zu rechtfertigen |
-| **Ausbau-Entscheidung $y_a^i$** | Variable | Bestimmt langfristige Struktur |
-| **Produktions-Mix $x_{ij}$** | Variable | Wie verteilen wir Produktion auf Werke? |
+* `u_{grid} \in \{0,1\}`  
+  Entscheidung über Netzerweiterung
 
----
+#### Kontinuierliche Variablen
 
-## 4. Zusammenhang: Modellstruktur verstehen
+* `SOC_{v,t}` – Ladezustand E‑Lkw
+* `p_{v,s,t}` – Ladeleistung
+* `p_t^{grid}` – Netzbezugsleistung
+* `p^{peak}` – Jahreshöchstlast
+* `P^{stor},\; E^{stor}` – Speicherleistung und -kapazität
+* `p_t^{stor,charge},\; p_t^{stor,discharge}` – Speicherleistungen
+* `SOC_t^{stor}` – Speicher‑SOC
 
-### 4.1 Der Modell-Aufbau schematisch
-
-1. **INPUT** (Parameter & Indexmengen)
-   - Indexmengen (I, J, A) → "Über was summieren wir?"
-   - Parameter (d_j, cv_ij, cap_a^i, cf_a^i) → "Was sind die gegebenen Daten?"
-
-2. **ENTSCHEIDUNGSVARIABLEN** (x_ij, y_a^i) → "Was soll das Modell entscheiden?"
-
-3. **ZIELFUNKTION** → "Welches Ziel minimieren/maximieren?"
-
-4. **RESTRIKTIONEN** → "Welche Regeln müssen eingehalten werden?"
-
-5. **SOLVER** (SCIP über PySCIPOpt)
-
-6. **OUTPUT**
-   - Optimale Werte für x_ij und y_a^i
-   - Minimale Gesamtkosten
-   - Welche Werke ausbauen?
-   - Welche Produktionsmengen und Routen?
+Alle Variablen werden in `build_model()` angelegt.
 
 ---
 
-## 5. Zusammenfassung für die Präsentation
+## 2.4 Schritt 4: Zielfunktion formulieren
 
-### Die drei Säulen unserer Arbeit:
+### Struktur der Zielfunktion
 
-1. **Modellierung:** Wir übersetzen ein Business-Problem in mathematische Sprache
-   - Indexmengen, Parameter, Variablen, Zielfunktion, Restriktionen
+Die Zielfunktion minimiert die **Total Cost of Ownership (TCO)** und unterscheidet explizit zwischen **operativen Kosten (OPEX)** und **Investitionskosten (CAPEX)**.
 
-2. **Implementierung:** Wir verwenden PySCIPOpt + SCIP
-   - Schreiben Python-Code in VSC
-   - Der Solver findet die optimale Lösung automatisch
+$`\min Z = Z_{vehicles}^E + Z_{vehicles}^D + Z_{infrastructure} + Z_{grid} + Z_{storage} + Z_{energy} - Z_{revenue}`$
 
-3. **Analyse:** Wir interpretieren die Ergebnisse
-   - Welche Werke sollen ausgebaut werden?
-   - Wie sollen Produktion und Transport optimal verteilt werden?
-   - Was sind die Kostentreiber?
-   - Wo sind Engpässe?
+### Kostenkomponenten
 
-### Die Standard-Vorgehensweise (immer gleich):
+* **Fahrzeugkosten (CAPEX + OPEX)**  
+  Leasing, Wartung und Steuern je Fahrzeuginstanz
 
-1. **Indexmengen definieren** → strukturiert das Problem
-2. **Parameter definieren** → beschreibt die Rahmenbedingungen
-3. **Entscheidungsvariablen definieren** → beschreibt die Wahlmöglichkeiten
-4. **Zielfunktion aufstellen** → beschreibt das Ziel
-5. **Restriktionen formulieren** → beschreibt die Grenzen
+* **Infrastrukturkosten (CAPEX + OPEX)**  
+  Ladesäulen und Batteriespeicher
 
-Diese Struktur wird bei **jedem Problem** verwendet – ob Raffinerien, Spediteure oder Juicy AG!
+* **Netzkosten**  
+  Grundgebühr, Netzerweiterung, Leistungspreis
 
----
+* **Energiekosten (OPEX)**  
+  Stromarbeitspreis, Diesel, Maut
 
-## 6. Glossar – Wichtige Begriffe
+* **Erlöse**  
+  THG‑Quotenerlöse für E‑Lkw
 
-| Begriff | Erklärung |
-|---------|-----------|
-| **Indexmenge** | Endliche Menge (z.B. {1, 2, 3, ...}), über die wir summieren |
-| **Parameter** | Gegebene Daten, die wir nicht entscheiden können |
-| **Entscheidungsvariable** | Größe, die das Optimierungsproblem selbst wählt |
-| **Zielfunktion** | Das Ziel, das wir minimieren oder maximieren |
-| **Restriktion** | Einschränkung/Regel, die die Lösung erfüllen muss |
-| **Kostentreiber** | Faktoren, die die Gesamtkosten bestimmen |
-| **Engpass** | Ressource/Kapazität, die die Produktion limitiert |
-| **SCIP** | Solver-Engine für Optimierungsprobleme |
-| **PySCIPOpt** | Python-Interface zu SCIP |
-| **VSC** | Visual Studio Code – lokale Entwicklungsumgebung |
-| **Kontinuierliche Variable** | Kann jeden Wert annehmen (z.B. 10.5, 100.3) |
-| **Binäre Variable** | Kann nur 0 oder 1 sein |
-| **Sensitivitätsanalyse** | Testen: "Was wenn dieser Parameter sich ändert?" |
+Jede Kostenkomponente ist **direkt einer Variablen und einem Parameterblock zugeordnet**, sodass sich Änderungen transparent auf die optimale Lösung auswirken.
 
 ---
 
-## 7. Fragen, die Sie erwarten sollten (20-Min Q&A vorbereiten)
+## 2.5 Schritt 5: Restriktionen formulieren
 
-### Grundlagen (einfach)
-- "Was ist ein Optimierungsproblem?" → Ziel minimieren unter Constraints
-- "Warum brauchen wir Indexmengen?" → Struktur und kompakte Formeln
-- "Was ist der Unterschied zwischen Parametern und Variablen?" → Parameter gegeben, Variablen zu wählen
-- "Warum VSC und nicht Colab?" → Lokal, schneller, professioneller, Datensicherheit
+Im Modell werden **21 Restriktionen** implementiert. Sie bilden technische, zeitliche und logische Rahmenbedingungen ab.
 
-### Modellierung (mittel)
-- "Erklär mal die Nachfrage-Restriktion!" → Summe von Werk-zu-Markt muss Nachfrage erfüllen
-- "Was passiert, wenn ein Engpass aktiv ist?" → Zusätzliche Kapazität wäre wertvoll
-- "Wie sehen operative vs. Investitionskosten aus?" → Operative täglich, Investment einmalig
-- "Warum zwei Arten von Variablen?" → Realistisch: täglich Mengen, aber selten Ausbau
+### Übersicht aller Restriktionen
 
-### Lösung und Tools (mittel-schwer)
-- "Wie findet SCIP die optimale Lösung?" → Branch-and-Bound, Branch-and-Cut Algorithmen
-- "Was macht PySCIPOpt genau?" → Übersetzt unsere Python-Befehle in SCIP-Format
-- "Wie lange dauert es, die Lösung zu finden?" → Abhängig von Problem-Größe
+(1) Tourenzuordnung: jede Tour genau einmal  
+(2) Tour nur mit beschafftem Fahrzeug  
+(3) Keine zeitliche Überlappung von Touren  
+(4) Maximale Anzahl installierter Ladesäulen  
+(5) Ladepunktkapazität  
+(6) Keine gleichzeitige Fahrt und Ladung  
+(7) Linearisierung Ladeleistung (Big‑M)  
+(8) Maximale Fahrzeugladeleistung  
+(9) Leistungsgrenze je Ladesäulentyp  
+(10) Depot‑Laderegeln (Nacht)  
+(11) Batteriedynamik E‑Lkw  
+(12) Zyklischer SOC E‑Lkw  
+(13) SOC‑Grenzen E‑Lkw  
+(14) Leistungsbilanz Depot  
+(15) Netzanschlussgrenze  
+(16) Peak‑Definition  
+(17) Speicher‑Leistungsgrenzen  
+(18) Speicher‑SOC‑Dynamik  
+(19) Zyklischer Speicher‑SOC  
+(20) Speicher‑SOC‑Grenzen mit DoD  
+(21) Nicht‑Negativität
 
-### Einsicht (schwer)
-- "Welche sind die Hauptkostentreiber?" → $cv_{ij}$ und möglicherweise $cf_a^i$
-- "Was sind die Engpässe?" → Kapazitäten der Werke
-- "Was würden Sie ändern, wenn Transportkosten steigen?" → Möglicherweise dezentrale Produktion
-- "Wann lohnt sich ein Ausbau?" → Wenn reduzierte operative Kosten Investitionskosten überkompensieren
+Alle Restriktionen sind im Abschnitt *NEBENBEDINGUNGEN* mathematisch dokumentiert und in `build_model()` implementiert.
 
 ---
 
-**Diese Anleitung ist dein Fundament für die 20-Minuten-Präsentation und Q&A!**
+## 3. Kostentreiber, Engpässe und Einflussfaktoren
+
+### 3.1 Kostentreiber
+
+Zentrale Kostentreiber im Modell sind:
+
+* Fahrzeug‑CAPEX und ‑OPEX
+* Strompreis und Peak‑Preis
+* Diesel‑ und Mautkosten
+* Ladeinfrastruktur‑Investitionen
+* Batteriespeichergröße
+
+Sie wirken **direkt additiv in der Zielfunktion** und bestimmen die optimale Flotten‑ und Infrastrukturstruktur.
+
+---
+
+### 3.2 Engpässe
+
+* Ladeleistung und Anzahl Ladepunkte
+* Netzanschlussleistung
+* Zeitliche Überlappung von Touren
+* Batteriekapazitäten
+
+Aktive Engpässe führen zu höheren Grenzkosten und beeinflussen Ausbau‑ und Beschaffungsentscheidungen.
+
+---
+
+### 3.3 Zentrale Einflussfaktoren
+
+* Tourenlängen und Zeitfenster
+* Energiepreise
+* Batterieparameter
+* THG‑Erlöse
+* Netzerweiterungskosten
+
+Diese Parameter haben hohen Einfluss auf die optimale Lösung und eignen sich besonders für Sensitivitätsanalysen.
+
+---
+
+## 4. Zusammenfassung
+
+Das Modell bildet ein **vollständiges, realitätsnahes MILP** zur Elektrifizierung eines Logistikdepots ab. Die klare Trennung von Indexmengen, Parametern, Variablen, Zielfunktion und Restriktionen erlaubt:
+
+* saubere mathematische Interpretation,
+* direkte Nachvollziehbarkeit im Code,
+* fundierte ökonomische Analyse der Ergebnisse.
+
+---
+
+**Diese README erklärt das Modell vollständig auf Basis der Implementierung in `tk.py`.**
