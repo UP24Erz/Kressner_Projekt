@@ -90,7 +90,11 @@ In jedem Fall gehen wir **in dieser standardisierten Reihenfolge** vor:
 
 Indexmengen sind endliche Mengen von Objekten, über die wir „zählen" oder summieren. Sie strukturieren das Problem und ermöglichen kompakte mathematische Formeln.
 
-**Beispiele aus unserem Kontext:**
+
+Den folgenden Abschnitt ERSETZEN DURCH: Alle Indexmengen die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
+Bitte achte darauf die Indexmengen in LATEX-Schreibweise in die Readme zu schreiben.
+
+**Beispiele aus unserem Kontext:** >  
 - $I$ = Menge der Produktionsstandorte (Fabriken)
 - $J$ = Menge der Märkte (Absatzorte)
 - $A$ = Menge der Ausbaustufen (Kapazitätserweiterungen)
@@ -111,6 +115,9 @@ Wenn wir schreiben $i \in I$, bedeutet das: „für alle Produktionsstandorte $i
 
 Parameter sind gegebene Daten (Input), die wir **nicht selbst entscheiden** dürfen. Sie beschreiben die Rahmenbedingungen unseres Problems.
 
+
+Den folgenden Abschnitt ERSETZEN DURCH: Alle Parameter die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
+Bitte achte darauf die Parameter LATEX-Schreibweise in die Readme zu schreiben. 
 **Beispiele aus unserem Kontext:**
 
 | Parameter | Notation | Bedeutung |
@@ -130,6 +137,9 @@ Parameter sind gegebene Daten (Input), die wir **nicht selbst entscheiden** dür
 
 Entscheidungsvariablen (auch: Stellschrauben) sind Größen, die das Optimierungsmodell **selbst wählen soll**. Sie sind die „Hebel", über die wir die Zielfunktion optimieren.
 
+
+Den folgenden Abschnitt ERSETZEN DURCH: Alle Entscheidungsvariablen die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
+Bitte achte darauf die Entscheidungsvariablen LATEX-Schreibweise in die Readme zu schreiben. 
 **Beispiele aus unserem Kontext:**
 
 | Variable | Notation | Typ | Bedeutung |
@@ -151,6 +161,8 @@ Entscheidungsvariablen (auch: Stellschrauben) sind Größen, die das Optimierung
 
 Die Zielfunktion ist das **Ziel**, das wir optimieren möchten. Sie fasst zusammen, was wir minimieren oder maximieren wollen.
 
+
+DEN FOLGENDEN ABSCHNITT ERSETZEN DURCH: Erkläre im Folgenden unsere Zielfunktion aus dem Code genauer. Erkläre, dass wir zwischen Operativen und Investitionskonsten unterscheiden und gehe auf Capex und Opex ein. Erkläre genau wo sich welche Kosten in der Zielfunktion wiederfinden und lasse die Beispiele weg. Das gilt für die ganze Readme. Keine Beispiele, nur unseren Code erklären. 
 #### Unsere Zielfunktion im Detail
 
 $$\min \text{GK} = \sum_{i \in I} \sum_{j \in J} cv_{ij} \cdot x_{ij} + \sum_{i \in I} \sum_{a \in A} cf_a^i \cdot y_a^i$$
@@ -197,6 +209,8 @@ Das Solver-Programm findet automatisch die **beste Kombination**.
 
 Restriktionen sind **Einschränkungen** oder **Regeln**, die das Optimierungsproblem einhalten muss. Sie beschreiben die Realität: Was ist möglich, was nicht?
 
+Den folgenden Abschnitt ERSETZEN DURCH: Alle Restriktionen die wir im Code definiert haben mit einer Erklärung warum wir diese brauchen. Auch Verweis wo im Code also welche Zeile wir die finden
+Bitte achte darauf die Restriktionen LATEX-Schreibweise in die Readme zu schreiben. Bitte erkläre alle 21 Restriktionen ausführlich 
 #### Restriktion (1): Nachfrage bedienen
 
 $$\sum_{i \in I} x_{ij} = d_j \quad \forall j \in J$$
@@ -233,6 +247,9 @@ Werk 1 kann mit den aktuell verbauten Maschinen (Ausbaustufe) maximal 500 Einhei
 
 **Definition:** Kostentreiber sind die **Hauptfaktoren**, die die Gesamtkosten des Unternehmens bestimmen.
 
+Den folgenden Abschnitt ERSETZEN DURCH: Alle Kostentreiber die wir im Code definiert haben mit einer Erklärung wie diese die Kosten in der Zielfunktion beinflussen. 
+Bitte erkläre alle Kostentreiber ausführlich 
+
 **Kostentreiber in unserem Modell:**
 
 | Kostentreiber | Parameter | Auswirkung |
@@ -260,6 +277,9 @@ Werk 1 kann mit den aktuell verbauten Maschinen (Ausbaustufe) maximal 500 Einhei
 ### 3.3 Was sind zentrale Einflussfaktoren?
 
 **Definition:** Zentrale Einflussfaktoren sind **Variablen oder Parameter**, deren Änderung **signifikante Auswirkungen** auf die optimale Lösung hat.
+
+Den folgenden Abschnitt ERSETZEN DURCH: Alle Einflussfaktoren die wir im Code definiert haben mit einer Erklärung wie diese die Kosten in der Zielfunktion beinflussen. 
+Bitte erkläre alle Einflussfaktoren ausführlich 
 
 **Zentrale Einflussfaktoren:**
 
