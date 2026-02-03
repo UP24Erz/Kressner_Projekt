@@ -1,0 +1,100 @@
+1. ALLGEMEINE GRUNDLAGEN ZUR VORLESUNG
+1.1 Was ist ein lineares Optimierungsproblem?
+
+Ein lineares Optimierungsproblem (auch: Linear Programming Problem, LP) ist eine mathematische Problemstellung, bei der wir:
+
+eine lineare Zielfunktion minimieren oder maximieren möchten
+
+unter linearen Nebenbedingungen (Restriktionen) und
+
+mit Entscheidungsvariablen, die kontinuierlich oder binär sein können
+
+Praktisches Verständnis: Stellen Sie sich vor, ein Unternehmen möchte die Gesamtkosten minimieren oder Gewinne maximieren. Gleichzeitig muss es aber Einschränkungen beachten wie:
+
+Verfügbare Kapazitäten von Fabriken
+
+Kundennachfrage, die bedient werden muss
+
+Budgets und Ressourcen
+
+Die Lösung des Optimierungsproblems sagt uns: Welche Entscheidungen treffen wir am besten, um das Ziel zu erreichen?
+
+1.2 Warum brauchen wir Software dafür?
+
+Optimierungsprobleme mit Hand zu lösen ist:
+
+Zeitaufwändig: Bei 1000 Variablen und 500 Constraints ist es unmöglich, das im Kopf zu lösen
+
+Fehleranfällig: Manuelle Rechenfehler sind garantiert
+
+Unpraktisch: Der Simplex-Algorithmus ist extrem komplex
+
+Daher verwenden wir Optimierungssoftware, die automatisch die beste Lösung findet.
+
+1.3 Unser Toolstack – Die vier Komponenten
+
+Wir nutzen folgende Tools:
+
+1. SCIP (Solving Constraint Integer Programs)
+
+Der eigentliche Solver – das „Hirn" der Optimierung
+
+Verwendet fortgeschrittene mathematische Algorithmen (Branch-and-Cut, Branch-and-Bound)
+
+Findet die optimale oder nahezu optimale Lösung in Sekunden
+
+Open Source und hochperformant
+
+Einfach ausgedrückt: Das Programm, das die Mathe macht
+
+2. PySCIPOpt (Python Wrapper für SCIP)
+
+Eine Python-Schnittstelle zu SCIP
+
+Erlaubt uns, Optimierungsprobleme in Python zu formulieren (statt komplexe C++ zu schreiben)
+
+Übersetzt unsere Python-Befehle in SCIP-Befehle
+
+Macht komplexe Optimierung „zugänglich"
+
+Einfach ausgedrückt: Die Übersetzerin zwischen uns und SCIP
+
+3. Python (Programmiersprache)
+
+Die Sprache, in der wir unser Problem beschreiben
+
+Wir schreiben: "Definiere Variable x", "Addiere diese Kosten", "Diese Constraint gilt"
+
+Dann rufen wir den Solver (SCIP über PySCIPOpt) auf
+
+Einfach ausgedrückt: Unsere Sprache, um mit dem Computer zu reden
+
+4. VSC (Visual Studio Code)
+
+Unsere Entwicklungsumgebung – der Editor auf unserem Computer
+
+Hier schreiben, testen und debuggen wir den Code
+
+Läuft lokal auf unserem Rechner
+
+Einfach ausgedrückt: Unser Arbeitszimmer für Code-Entwicklung
+
+1.4 Warum VSC und nicht Google Colab?
+
+Das ist eine wichtige Frage, die ihr auf jeden Fall beantworten könnt!
+
+Aspekt	Google Colab	VSC (Lokal)
+Ort	Im Browser (Cloud)	Auf unserem Computer
+Internetverbindung	Benötigt immer Internet	Nicht nötig
+Rechenpower	Begrenzt (für größere Probleme zu schwach)	Volle Kraft unseres Computers
+Datensicherheit	Daten auf Google-Servern	Daten bleiben bei uns
+Entwicklung	Schnell zum Ausprobieren gut	Professionell und produktiv
+Installation	Nichts installieren nötig	Python + VSC + Libs installieren
+Debugging	Schwieriger	Einfacher mit VSC Tools
+Praktisch für euch:
+
+Wenn Colab abstürzt → ganzer Code weg → Frust
+
+Wenn VSC abstürzt → Alles noch auf der Festplatte → Kein Problem
+
+Colab ist eher für kurze Experimente, VSC für echte Projekte
