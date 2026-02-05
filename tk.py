@@ -224,7 +224,7 @@ class OptimizationConfig:
     # Energiepreise
     ELECTRICITY_PRICE = 0.25    # [€/kWh] Arbeitspreis Strom
     PEAK_PRICE = 150.0          # [€/(kW·a)] Leistungspreis
-    DIESEL_PRICE = 1.50         # [€/L] Dieselpreis
+    DIESEL_PRICE = 1.60         # [€/L] Dieselpreis
     TOLL_PRICE = 0.34           # [€/km] Mautpreis
     
     # Netzanschluss
