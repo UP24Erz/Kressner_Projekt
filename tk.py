@@ -72,8 +72,6 @@ Energiekosten:
   c_diesel          : Dieselpreis [€/L]
   c_toll            : Mautpreis [€/km]
   
-Big-M Parameter:
-  M                 : Große Zahl für Linearisierung (10000)
 
 ENTSCHEIDUNGSVARIABLEN:
 -----------------------
@@ -157,7 +155,7 @@ NEBENBEDINGUNGEN:
 (7) Ladeleistung nur bei Belegung (Linearisierung):
     p_{v,s,t} ≤ M · w_{v,s,t}                             ∀v ∈ V_E, ∀s ∈ S, ∀t ∈ T
 
-(8) Maximale Fahrzeugladeleistung:
+(8) Maximale Fahrzeugladeleistung:(wird nicht mehr verwendet)
     p_{v,s,t} ≤ P_{model(v)}^charge,max · w_{v,s,t}      ∀v ∈ V_E, ∀s ∈ S, ∀t ∈ T
 
 (9) Ladesäulen-Leistungsgrenze - Summe über alle Ladepunkte einer Säule:
@@ -226,7 +224,7 @@ class OptimizationConfig:
     # Energiepreise
     ELECTRICITY_PRICE = 0.25    # [€/kWh] Arbeitspreis Strom
     PEAK_PRICE = 150.0          # [€/(kW·a)] Leistungspreis
-    DIESEL_PRICE = 1.60         # [€/L] Dieselpreis
+    DIESEL_PRICE = 1.50         # [€/L] Dieselpreis
     TOLL_PRICE = 0.34           # [€/km] Mautpreis
     
     # Netzanschluss
