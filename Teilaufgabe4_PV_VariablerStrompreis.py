@@ -72,8 +72,6 @@ Energiekosten:
   c_diesel          : Dieselpreis [€/L]
   c_toll            : Mautpreis [€/km]
   
-Big-M Parameter:
-  M                 : Große Zahl für Linearisierung (10000)
 
 ENTSCHEIDUNGSVARIABLEN:
 -----------------------
@@ -157,7 +155,7 @@ NEBENBEDINGUNGEN:
 (7) Ladeleistung nur bei Belegung (Linearisierung):
     p_{v,s,t} ≤ M · w_{v,s,t}                             ∀v ∈ V_E, ∀s ∈ S, ∀t ∈ T
 
-(8) Maximale Fahrzeugladeleistung:
+(8) Maximale Fahrzeugladeleistung:(wird nicht mehr verwendet)
     p_{v,s,t} ≤ P_{model(v)}^charge,max · w_{v,s,t}      ∀v ∈ V_E, ∀s ∈ S, ∀t ∈ T
 
 (9) Ladesäulen-Leistungsgrenze - Summe über alle Ladepunkte einer Säule:
@@ -210,6 +208,70 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import os
+import math
+
+# ============================================================================
+# DYNAMISCHE STROMPREIS-FUNKTION
+# ============================================================================
+
+def smoothstep(u: float) -> float:
+    """C1-glatt, u in [0,1]."""
+    return u*u*(3 - 2*u)
+
+def lerp(a: float, b: float, w: float) -> float:
+    return a + (b - a) * w
+
+def strompreis_smooth(t: float, tau: float = 1.0) -> float:
+    """
+    Glatte Simulation der variablen Strompreise über 24h.
+    t   : Uhrzeit in Stunden (float; beliebig, wird modulo 24 genommen)
+    tau : Übergangsbreite in Stunden (z.B. 0.5 .. 2.0). Größer = weicher.
+    Rückgabe: Preis in €/kWh
+    """
+    # Preise je Segment
+    p0, p1, p2, p3 = 0.18, 0.25, 0.35, 0.27
+
+    # t in [0,24)
+    t = t % 24.0
+    h = tau / 2.0
+
+    # Segment-Preis (ohne Glättung)
+    if 0 <= t < 6:
+        p = p0
+    elif 6 <= t < 16:
+        p = p1
+    elif 16 <= t < 22:
+        p = p2
+    else:  # 22 <= t < 24
+        p = p3
+
+    # Hilfsfunktion: glatter Übergang um eine Grenze T von p_left -> p_right
+    def blend_around_boundary(t_local: float, T: float, p_left: float, p_right: float):
+        # Bereich [T-h, T+h]
+        if (T - h) <= t_local <= (T + h):
+            u = (t_local - (T - h)) / tau  # 0..1
+            w = smoothstep(max(0.0, min(1.0, u)))
+            return lerp(p_left, p_right, w)
+        return None
+
+    # Übergänge an 6,16,22
+    for T, left, right in [
+        (6.0,  p0, p1),
+        (16.0, p1, p2),
+        (22.0, p2, p3),
+    ]:
+        b = blend_around_boundary(t, T, left, right)
+        if b is not None:
+            return b
+
+    # Übergang über Mitternacht: von p3 (22-24) zu p0 (0-6) um T=24 (=0)
+    # Wir betrachten dazu t nahe 24 ODER nahe 0 als Bereich um 24.
+    t_for_midnight = t if t >= (24.0 - h) else (t + 24.0)  # t in [24-h, 24+h]
+    b = blend_around_boundary(t_for_midnight, 24.0, p3, p0)
+    if b is not None:
+        return b
+
+    return p
 
 # ============================================================================
 # KONFIGURATION UND PARAMETER
@@ -224,10 +286,11 @@ class OptimizationConfig:
     NUM_DAYS = 260              # Betriebstage pro Jahr
     
     # Energiepreise
-    ELECTRICITY_PRICE = 0.25    # [€/kWh] Arbeitspreis Strom
+    # ELECTRICITY_PRICE wird dynamisch berechnet (siehe strompreis_smooth)
     PEAK_PRICE = 150.0          # [€/(kW·a)] Leistungspreis
-    DIESEL_PRICE = 1.60         # [€/L] Dieselpreis
+    DIESEL_PRICE = 1.50         # [€/L] Dieselpreis
     TOLL_PRICE = 0.34           # [€/km] Mautpreis
+    ELECTRICITY_TAU = 1.0       # [h] Übergangsbreite für Strompreis-Glättung
     
     # Netzanschluss
     GRID_BASE_POWER = 500.0     # [kW] Basis-Anschlussleistung
@@ -243,6 +306,16 @@ class OptimizationConfig:
     STORAGE_ETA_CHARGE = 0.98       # [-] Ladewirkungsgrad
     STORAGE_ETA_DISCHARGE = 0.98    # [-] Entladewirkungsgrad
     STORAGE_DOD_MIN = 0.025         # [-] Minimale Entladetiefe (2.5%)
+    
+    # Photovoltaik
+    PV_CAPEX_PER_KWP_Y = 75.0       # [€/(kWp·a)] CAPEX annualisiert (60-90)
+    PV_OPEX_PER_KWP_Y = 15.0        # [€/(kWp·a)] OPEX annualisiert (~1.5% der Investition)
+    PV_SPECIFIC_KWP_PER_M2 = 0.18   # [kWp/m²] spezifische Leistung (0.15-0.20)
+    PV_EFF = 0.97                   # [-] Wirkungsgrad (95-98%)
+    PV_DEGRADATION = 0.005          # [-] Degradation pro Jahr (0.5%/a)
+    # Effektiver Wirkungsgrad mit mittlerer Degradation über 1 Jahr
+    PV_EFF_EFFECTIVE = PV_EFF * (1 - PV_DEGRADATION / 2)  # Mittlere Degradation
+    ROOF_AREA_MAX_M2 = 999999.0     # [m²] Maximale Dachfläche (sehr groß = unbegrenzt)
     
     # Ladeinfrastruktur
     MAX_CHARGERS_PER_TYPE = 3   # Maximal 3 Ladesäulen insgesamt
@@ -287,6 +360,11 @@ def load_data(data_dir="Daten"):
     chargers_path = os.path.join(data_dir, "chargers.csv")
     data['chargers'] = pd.read_csv(chargers_path, sep=';', decimal=',')
     print(f"✓ {len(data['chargers'])} Ladesäulentypen geladen")
+    
+    # PV-Profil einlesen (96 Zeitschritte, Werte 0-1)
+    pv_profile_path = os.path.join(data_dir, "pv_profile.csv")
+    data['pv_profile'] = pd.read_csv(pv_profile_path, sep=';', decimal=',')
+    print(f"✓ {len(data['pv_profile'])} PV-Profil-Werte geladen")
     
     return data
 
@@ -456,6 +534,30 @@ def extract_parameters(data, sets):
     
     print(f"✓ Ladesäulen-Parameter extrahiert ({len(params['charger_capex'])} Typen)")
     
+    # -------------------------
+    # PV-Profil-Parameter
+    # -------------------------
+    params['pv_g'] = {}  # g_t: PV-Erzeugungsfaktor pro Zeitschritt [0,1]
+    
+    for _, row in data['pv_profile'].iterrows():
+        t = int(row['timestep'])
+        params['pv_g'][t] = float(row['pv_factor'])
+    
+    print(f"✓ PV-Profil-Parameter extrahiert ({len(params['pv_g'])} Zeitschritte)")
+    
+    # -------------------------
+    # Dynamische Strompreise
+    # -------------------------
+    params['electricity_price'] = {}  # c_el(t): Zeitabhängiger Strompreis [€/kWh]
+    
+    for t in range(OptimizationConfig.NUM_TIMESTEPS):
+        # Konvertiere Zeitschritt zu Stunden seit Mitternacht
+        hour = t * OptimizationConfig.DELTA_T
+        params['electricity_price'][t] = strompreis_smooth(hour, tau=OptimizationConfig.ELECTRICITY_TAU)
+    
+    print(f"✓ Dynamische Strompreise berechnet ({len(params['electricity_price'])} Zeitschritte)")
+    print(f"  Min: {min(params['electricity_price'].values()):.3f} €/kWh, Max: {max(params['electricity_price'].values()):.3f} €/kWh")
+    
     return params
 
 
@@ -582,6 +684,18 @@ def build_model(data, sets, params):
         soc_stor[t] = model.addVar(vtype="CONTINUOUS", lb=0, name=f"SOC_stor_{t}")
     print(f"    ✓ {len(soc_stor)} Speicher-SOC-Variablen SOC_t^stor")
     
+    # (13) PV-Variablen
+    P_pv = model.addVar(vtype="CONTINUOUS", lb=0, name="P_pv")  # Installierte PV-Leistung [kWp]
+    print(f"    ✓ 1 PV-Installations-Variable P_pv")
+    
+    # PV-Leistung pro Zeitschritt
+    p_pv_used = {}     # Genutzte PV-Leistung [kW]
+    p_pv_curt = {}     # Abgeregelte PV-Leistung [kW]
+    for t in sets['T']:
+        p_pv_used[t] = model.addVar(vtype="CONTINUOUS", lb=0, name=f"p_pv_used_{t}")
+        p_pv_curt[t] = model.addVar(vtype="CONTINUOUS", lb=0, name=f"p_pv_curt_{t}")
+    print(f"    ✓ {len(p_pv_used) + len(p_pv_curt)} PV-Leistungs-Variablen p_pv_used/curt")
+    
     # ========================================================================
     # ZIELFUNKTION
     # ========================================================================
@@ -623,13 +737,18 @@ def build_model(data, sets, params):
                            OptimizationConfig.STORAGE_OPEX_ENERGY))
     print("    ✓ Z_storage: Speicher-Kosten")
     
-    # Z_electricity: Stromkosten (Arbeit + Leistung)
-    z_electricity_work = OptimizationConfig.NUM_DAYS * OptimizationConfig.ELECTRICITY_PRICE * quicksum(
-        p_grid[t] * OptimizationConfig.DELTA_T for t in sets['T']
+    # Z_pv: PV-Anlage (CAPEX + OPEX)
+    z_pv = P_pv * (OptimizationConfig.PV_CAPEX_PER_KWP_Y + OptimizationConfig.PV_OPEX_PER_KWP_Y)
+    print("    ✓ Z_pv: PV-Anlagen-Kosten")
+    
+    # Z_electricity: Stromkosten (Arbeit + Leistung) - DYNAMISCH
+    z_electricity_work = OptimizationConfig.NUM_DAYS * quicksum(
+        params['electricity_price'][t] * p_grid[t] * OptimizationConfig.DELTA_T 
+        for t in sets['T']
     )
     z_electricity_peak =  OptimizationConfig.PEAK_PRICE * p_peak
     z_electricity = z_electricity_work + z_electricity_peak
-    print("    ✓ Z_electricity: Strom-Kosten (Arbeit + Leistung)")
+    print("    ✓ Z_electricity: Strom-Kosten (Arbeit + Leistung, dynamische Preise)")
     
     # Z_diesel: Dieselkosten
     z_diesel = OptimizationConfig.NUM_DAYS * OptimizationConfig.DIESEL_PRICE * quicksum(
@@ -654,10 +773,10 @@ def build_model(data, sets, params):
     
     # Gesamtkosten
     total_cost = (z_vehicles_e + z_vehicles_d + z_infrastructure + z_grid + 
-                  z_storage + z_electricity + z_diesel + z_toll - z_revenue)
+                  z_storage + z_pv + z_electricity + z_diesel + z_toll - z_revenue)
     
     model.setObjective(total_cost, "minimize")
-    print("    ✓ Zielfunktion: min Z (Total Cost of Ownership)")
+    print("    ✓ Zielfunktion: min Z (Total Cost of Ownership + PV)")
     
     # ========================================================================
     # NEBENBEDINGUNGEN
@@ -697,6 +816,14 @@ def build_model(data, sets, params):
                  name="max_total_chargers")
     constraint_count += 1
     print(f"    ✓ (4) 1 Gesamt-Ladeinfrastruktur-Constraint (max. 3 Säulen insgesamt)")
+    
+    # (4a) PV-Dachflächenbeschränkung: P_pv <= spezifische_Leistung * max_Dachfläche
+    model.addCons(
+        P_pv <= OptimizationConfig.PV_SPECIFIC_KWP_PER_M2 * OptimizationConfig.ROOF_AREA_MAX_M2,
+        name="pv_roof_area_limit"
+    )
+    constraint_count += 1
+    print(f"    ✓ (4a) 1 PV-Dachflächen-Constraint")
     
     
     # (5) NEU: 2 Ladepunkte pro Säule - Pro Typ dürfen max 2*z[c] Trucks gleichzeitig hängen
@@ -840,15 +967,25 @@ def build_model(data, sets, params):
     constraint_count += len(sets['V_E']) * len(sets['T'])
     print(f"    ✓ (13) {len(sets['V_E']) * len(sets['T'])} SOC-Grenzen-Constraints")
     
-    # (14) Leistungsbilanz: Grid + Speicher-Entladung = Laden + Speicher-Ladung (VEREINFACHT)
+    # (13a) PV-Momentanleistung: p_pv_used[t] + p_pv_curt[t] = P_pv * g_t * eta_eff
+    for t in sets['T']:
+        pv_generation = OptimizationConfig.PV_EFF_EFFECTIVE * params['pv_g'][t] * P_pv
+        model.addCons(
+            p_pv_used[t] + p_pv_curt[t] == pv_generation,
+            name=f"pv_generation_{t}"
+        )
+    constraint_count += len(sets['T'])
+    print(f"    ✓ (13a) {len(sets['T'])} PV-Momentanleistungs-Constraints")
+    
+    # (14) Leistungsbilanz: Grid + Speicher-Entladung + PV = Laden + Speicher-Ladung
     for t in sets['T']:
         total_charging = quicksum(p_charge[v, t] for v in sets['V_E'])
         model.addCons(
-            p_grid[t] + p_stor_discharge[t] == total_charging + p_stor_charge[t],
+            p_grid[t] + p_stor_discharge[t] + p_pv_used[t] == total_charging + p_stor_charge[t],
             name=f"power_balance_{t}"
         )
     constraint_count += len(sets['T'])
-    print(f"    ✓ (14) {len(sets['T'])} Leistungsbilanz-Constraints")
+    print(f"    ✓ (14) {len(sets['T'])} Leistungsbilanz-Constraints (mit PV)")
     
     # (15) Netzanschlussgrenze
     for t in sets['T']:
@@ -916,7 +1053,8 @@ def build_model(data, sets, params):
         'p_grid': p_grid, 'p_peak': p_peak, 'u_grid': u_grid,
         'P_stor': P_stor, 'E_stor': E_stor,
         'p_stor_charge': p_stor_charge, 'p_stor_discharge': p_stor_discharge,
-        'soc_stor': soc_stor
+        'soc_stor': soc_stor,
+        'P_pv': P_pv, 'p_pv_used': p_pv_used, 'p_pv_curt': p_pv_curt
     }
 
 
@@ -1061,6 +1199,43 @@ def optimize_and_analyze(model, variables, sets, params):
         else:
             print("  • Kein Speicher installiert")
         
+        # PV-Anlage
+        print("\n" + "="*80)
+        print("PHOTOVOLTAIK-ANLAGE")
+        print("="*80)
+        
+        pv_power = model.getVal(variables['P_pv'])
+        
+        if pv_power > 0.1:
+            pv_area = pv_power / OptimizationConfig.PV_SPECIFIC_KWP_PER_M2
+            # Jahreserzeugung berechnen
+            pv_energy_day = sum(
+                model.getVal(variables['p_pv_used'][t]) * OptimizationConfig.DELTA_T +
+                model.getVal(variables['p_pv_curt'][t]) * OptimizationConfig.DELTA_T
+                for t in sets['T']
+            )
+            pv_energy_year = pv_energy_day * OptimizationConfig.NUM_DAYS
+            
+            # Genutzte und abgeregelte Energie
+            pv_used_day = sum(
+                model.getVal(variables['p_pv_used'][t]) * OptimizationConfig.DELTA_T
+                for t in sets['T']
+            )
+            pv_curt_day = sum(
+                model.getVal(variables['p_pv_curt'][t]) * OptimizationConfig.DELTA_T
+                for t in sets['T']
+            )
+            
+            print(f"  • Installierte Leistung: {pv_power:.2f} kWp")
+            print(f"  • Benötigte Dachfläche: {pv_area:.2f} m²")
+            print(f"  • Jahreserzeugung: {pv_energy_year:,.2f} kWh/a")
+            print(f"  • Genutzt pro Tag: {pv_used_day:.2f} kWh")
+            print(f"  • Abgeregelt pro Tag: {pv_curt_day:.2f} kWh")
+            if pv_energy_day > 0:
+                print(f"  • Nutzungsgrad: {pv_used_day/pv_energy_day*100:.1f}%")
+        else:
+            print("  • Keine PV-Anlage installiert")
+        
         # Kostenaufschlüsselung
         print("\n" + "="*80)
         print("KOSTENAUFSCHLÜSSELUNG")
@@ -1104,17 +1279,26 @@ def optimize_and_analyze(model, variables, sets, params):
                                       OptimizationConfig.STORAGE_OPEX_ENERGY))
         print(f"Batteriespeicher:            {storage_cost:>15,.2f} €/a")
         
-        # Stromkosten
-        total_energy = sum(
-            model.getVal(variables['p_grid'][t]) * OptimizationConfig.DELTA_T 
-            for t in sets['T']
-        ) * OptimizationConfig.NUM_DAYS
+        # PV-Anlage
+        pv_cost = pv_power * (OptimizationConfig.PV_CAPEX_PER_KWP_Y + OptimizationConfig.PV_OPEX_PER_KWP_Y)
+        print(f"PV-Anlage:                   {pv_cost:>15,.2f} €/a")
         
-        electricity_work_cost = total_energy * OptimizationConfig.ELECTRICITY_PRICE
+        # Stromkosten (dynamisch)
+        electricity_work_cost = OptimizationConfig.NUM_DAYS * sum(
+            params['electricity_price'][t] * model.getVal(variables['p_grid'][t]) * OptimizationConfig.DELTA_T
+            for t in sets['T']
+        )
         electricity_peak_cost = peak_power * OptimizationConfig.PEAK_PRICE 
         electricity_cost = electricity_work_cost + electricity_peak_cost
         
-        print(f"Strom (Arbeitspreis):        {electricity_work_cost:>15,.2f} €/a")
+        # Durchschnittlicher Strompreis (gewichtet nach Verbrauch)
+        total_energy = sum(
+            model.getVal(variables['p_grid'][t]) * OptimizationConfig.DELTA_T 
+            for t in sets['T']
+        )
+        avg_price = (electricity_work_cost / OptimizationConfig.NUM_DAYS / total_energy) if total_energy > 0 else 0
+        
+        print(f"Strom (Arbeitspreis):        {electricity_work_cost:>15,.2f} €/a (Ø {avg_price:.3f} €/kWh)")
         print(f"Strom (Leistungspreis):      {electricity_peak_cost:>15,.2f} €/a")
         
         # Diesel
